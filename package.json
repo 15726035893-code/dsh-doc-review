@@ -1,0 +1,52 @@
+{
+  "name": "@caihua/dsh-doc-review",
+  "version": "1.0.0",
+  "description": "文档批注台：在 DSH 里直接对方案文档划词批注，批注落盘为 sidecar（.dsh-review/），Agent 通过 doc_review_* 工具读取批注并改稿，改完回标状态。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
+      "platform": "web"
+    }
+  },
+  "author": "caihua8669",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caihua8669/dsh-doc-review.git"
+  },
+  "homepage": "https://github.com/caihua8669/dsh-doc-review#readme",
+  "bugs": {
+    "url": "https://github.com/caihua8669/dsh-doc-review/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "review",
+    "annotation",
+    "comment"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,6 @@
+# dsh-doc-review bundle patch：把双面插件行插进 profile 花名册。
+# 宿主半边（exports "."）跑在 host 进程：/api/dsh-doc-review/* 路由 + doc_review_* 工具；
+# package.json 里的 dsh.client 声明让浏览器半边（exports "./client"）在 GUI 里加载。
+- insert:
+    - id: doc-review
+      name: '@caihua/dsh-doc-review'

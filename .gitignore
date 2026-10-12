@@ -1,0 +1,19 @@
+# dependencies / build output
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+
+# 插件运行时目录（批注跟文档走，落在 <文档目录>/.dsh-review/）
+.dsh-review/
+
+# 测试与冒烟的临时目录
+_smoke-root/
+_smoke-outside/
+_smoke-*/
+*.log
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
