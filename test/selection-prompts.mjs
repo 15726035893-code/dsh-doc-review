@@ -89,6 +89,8 @@ ok('ChatAnnotator inserts via composerShell + setDraft', /function applyPrompt\(
 ok('toolbar renders inline prompts', /inline\.map\(function \(p\)[\s\S]{0,300}applyPrompt\(p\)/.test(src))
 ok('overflow menu offers 管理提示词', src.includes("'管理提示词…'"))
 ok('manager saves through storePrompts', src.includes('setPrompts(storePrompts(rows))'))
+ok('no overflow → last button opens the manager directly (no one-item menu)', /overflow\.length\s*\?[\s\S]{0,400}setMoreOpen[\s\S]{0,200}:\s*h\('button'[\s\S]{0,400}openManager\(\)/.test(src))
+ok('menu only renders when something overflows', /if \(moreOpen && !open && overflow\.length\)/.test(src))
 
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)
