@@ -102,7 +102,7 @@ async function main() {
 
   console.log('\n[1] 挂载')
   ok('注册了 10 条路由（会话批注 2 + 建议模式 2）', routes.length === 10, 'got ' + routes.length)
-  ok('注册了 8 个工具（会话批注 2 + 建议模式 3）', tools.length === 8, tools.map((t) => t.name).join(','))
+  ok('注册了 9 个工具（文档批注 4 + 会话批注 2 + 建议模式 3）', tools.length === 9, tools.map((t) => t.name).join(','))
   ok('工具齐名', ['doc_review_list', 'doc_review_resolve', 'doc_review_reopen'].every((n) => !!tool(n)))
 
   console.log('\n[2] /state')
