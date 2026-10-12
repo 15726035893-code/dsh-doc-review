@@ -80,7 +80,9 @@ ok('empty list survives a round trip', H.loadPrompts().length === 0)
 
 console.log('[6] pill width')
 ok('wider with more prompts', H.pillWidth(['翻译', '解读']) > H.pillWidth([]))
-ok('base toolbar fits the old 150px budget', H.pillWidth([]) <= 150, H.pillWidth([]))
+// Calibrated against the rendered toolbar (Playwright, 13px host-menu type): 批注 复制 翻译 解读 润色 ⋯ = 309px.
+const est = H.pillWidth(['翻译', '解读', '润色'])
+ok('estimate tracks the rendered width (309px) within 12px, never short by more than 4', est >= 305 && est <= 321, est)
 
 console.log('[7] wiring (static)')
 ok('ChatAnnotator inserts via composerShell + setDraft', /function applyPrompt\(p\)[\s\S]{0,400}composerShell\(\)[\s\S]{0,300}setDraft\(joinDraft/.test(src))
