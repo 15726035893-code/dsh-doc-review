@@ -65,6 +65,11 @@ ok('字号只用三档 + markdown em',
     const allowed = new Set(['13px', '12px', '11px', '1.5em', '1.3em', '1.14em', '1em', '.92em'])
     return sizes.every((s) => allowed.has(s) || s.startsWith('var(--dsh-content-font-size'))
   })())
+/* 行间缝：悬停/选中底色都带圆角，margin-top:0 会让相邻行圆角焊成一块。
+   2px 刚好露出圆角；写成 0 或负值都算回归。 */
+ok('列表行间留缝（避免相邻圆角贴合）',
+  /\.dr-list>\*\+\*\{[^}]*margin-top:\s*([1-9]\d*)px/.test(css),
+  '期望 .dr-list>*+*{margin-top:Npx} 且 N≥1')
 
 console.log('\n结果：pass=' + pass + ' fail=' + fail)
 process.exitCode = fail ? 1 : 0

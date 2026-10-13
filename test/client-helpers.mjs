@@ -86,7 +86,7 @@ console.log('[6] whenText')
 const now = new Date()
 const p = (n) => String(n).padStart(2, '0')
 const stamp = now.getFullYear() + '-' + p(now.getMonth() + 1) + '-' + p(now.getDate()) + ' 09:05'
-ok('nowStamp format → 今天 09:05', H.whenText(stamp) === '今天 09:05', H.whenText(stamp))
+ok('nowStamp format → 相对时间', /^(刚刚|\d+分钟|\d+小时)$/.test(H.whenText(stamp)), H.whenText(stamp))
 ok('garbage passes through', H.whenText('昨天傍晚') === '昨天傍晚')
 ok('empty → empty', H.whenText('') === '')
 

@@ -29,11 +29,14 @@ dsh plugin --profile desktop add github:caihua8669/dsh-doc-review
 
 以前的改稿回环：把段落复制到聊天窗口 → 下一行写建议 → 发出去。批注台把这一步改成：**在文档上划词 → 旁边写意见 → 点「交给 AI 改稿」**，Agent 拿到的是带行号、带原文引用、带作者与状态的结构化批注，不再丢上下文。
 
+对话划词菜单的「添加到对话」在输入框插入原生引用徽章。发送时记录来源会话和完整选文，引用中的结束标记按原文保留。插件通过 DSH 的 `conversation.chat.node` 消息槽位显示可展开、可收起的引用徽章，刷新后从历史消息恢复，无需重建或替换桌面应用。普通消息继续使用宿主渲染器；停用插件后引用仍保留为带来源的文本。这里支持展开原文，暂不定位到来源消息。
+
 ## 界面在哪
 
 DSH 会话页顶部页签栏里的 **「批注」**（与「对话轨迹」「上下文」「白板看板」并列）。三栏：
 
-- 左：**按优先级列文档**，右上角按钮切换三档（本机记忆选择）：
+- 左：**按优先级列文档**。标题条右侧两个图标按钮切换视图（目录树 ⇄ 平铺，本机记忆选择）；
+  结果行上是「N 篇」计数（详情挂在悬浮）加「范围」下拉——展开后选三档，末项是「重扫并刷新」：
   - **相关**（默认）：两层优先级，不扫文件夹全量。
     - 第一层「本会话产出 / 编辑」：这个会话里 agent 真正 read / write / edit 过的文档，加上 `deliverables/presented`（交付给你的文件）与 `agent/inbox/spliced`（子代理产出，子代理写的文档只在这里出现）。条目上标「产出 / 编辑 / 读过」，时间显示的是**会话里最后一次动它的时间**，并用它排序（比文件 mtime 更贴近「会话里最新那篇」）。
     - 第二层「本项目其它会话碰过」：同一工作区里**最近 15 个会话**（可配 `projectSessions`）碰过的文档并集，去重后按文档改动时间倒序。标「本项目」，悬浮显示来自几个会话。这一层回答的是「这个项目里被工作过的文档」，不是 `C:\业务\其他` 那 5,494 篇全量。
@@ -41,7 +44,7 @@ DSH 会话页顶部页签栏里的 **「批注」**（与「对话轨迹」「�
   - **工作区**：会话 cwd 下的全部 md（想翻整个文件夹时用）。
   - **全库**：配置 `roots`（缺省 `C:\业务`）下的全部 md，**24,856 篇**（深度不限，实测扫完 1.6 秒）。
   - 两层都空时，自动放宽到「工作区」并在提示行标注原因，不会给你一个空列表。
-  - **层间不混排**：本会话的永远在最前，层内才按时间/待处理排；右上另一按钮切「最新 ⇄ 待处理优先」。
+  - **层间不混排**：本会话的永远在最前，层内才按时间/待处理排；结果行右侧另一个按钮切「按最近 ⇄ 按待处理优先」。
   - 列表项显示相对时间（今天 16:20 / 昨天 09:05 / 08-29 14:00）、待处理条数与批注总数。底部输入框可直接粘绝对路径。
   - 返回给界面的始终是「最新 400 篇」（搜索时是命中的最新 400 篇）；批注数只挂在这 400 篇上算，所以「待处理优先」是在最近 400 篇里的排序。
   - 缓存：全库/工作区扫描 5 分钟，本会话转写 20 秒（会话进行中一直在长），本项目聚合 10 分钟。真实数据实测：本工作区 205 个会话 / 140MB 转写，取最近 15 个会话解码 + 合并统计共 **311ms**。
@@ -52,14 +55,23 @@ DSH 会话页顶部页签栏里的 **「批注」**（与「对话轨迹」「�
   - 批注框默认贴在**选区上方**（下沿离选区留 10px），上方放不下（选区在视口顶部 170px 内）才落到选区下方；横向与选区左沿对齐并夹在视口内——**任何情况下都不压住选中的文字**。定位算法抽成纯函数 `floatPlacement(rect, vw, vh)`，有 8 条断言。
   - 弹框抢走焦点后浏览器原生选区会变淡，所以用 CSS Custom Highlight（`::highlight(dr-pending)`）把选区持续标黄，并在框内显示所选文字前 28 字，避免「改着改着忘了选的是哪段」。
 - **建议模式（改稿默认走这条路）**：AI 不再直接改文件，而是先用 `doc_change_propose` 登记改动提案（`quote` 原文 → `after` 新文 + `note` 为什么），落 `<文档目录>/.dsh-review/<文件名>.proposals.json`。**登记时文件一个字都不动**；用户在「批注」页的「待审改动」面板逐条 接受/拒绝（可填拒绝原因），**接受那一刻才真正写文件**，并按 `quote` 重新定位（文档后来被别人改过也能对上；原文彻底找不到就一个字都不写并说明是哪几条对不上）。受影响的段落在正文里会挂一条**内联预览**（红=原文、绿=拟改）+ 就地接受/拒绝按钮。
-- 右：批注清单（#序号 / 行号 / 状态 / 原文引用 / 意见输入 / 已处理·退回·删除），底部是整篇级意见。
-- **会话批注**：在**正常对话界面**里选中一段文字，选区旁边会出现一个小「批注」按钮，点开写意见即可——不用占用对话输入框，也不用把整段贴进来。落盘在 `~/.dsh/doc-review/session-notes/<sessionId>.json`，`doc_review_list` 之外的 `session_note_list` / `session_note_resolve` 负责给 agent 读与回标。
+- 右：批注卡片（飞书式），底部是整篇级意见。
+  - 卡片：#序号 / 行号 / 状态 / 原文引用 / 意见，可 已处理·退回·删除；自己写的批注可「编辑」（记 `x_updated_at`）。
+  - **回复串**：每条批注下可来回回复（回车发送）；AI 的 `doc_review_reply` / `doc_review_resolve` 回填也追加进同一串，不覆盖上一条。
+  - **双向联动**：点卡片，正文滚到锚点并加深高亮；点正文里的高亮，右栏滚到对应卡片。锚点用 CSS Custom Highlight 精确标到划词原文（`dr-anchor` / `dr-anchor-active`），不再整块染色。
+  - 已处理的批注折叠进「已解决 (n)」，点开才展开；激活一条已处理批注时自动展开。
+  - 正文右侧有一条位置轨（`dr-rail`），每条批注一个点，点了直接跳过去。
+  - 快捷键按平台显示：Mac 是 `⌘↩` / `⇧⌘M`，其它平台是 `Ctrl+Enter` / `Ctrl+Shift+M`（后者把焦点送回批注框）。
+- **会话批注**：在**正常对话界面**里选中一段文字，选区旁边会出现一条小工具条（批注 / 复制 / 划词提示词 / ⋯），点「批注」写意见即可——不用占用对话输入框，也不用把整段贴进来。落盘在 `~/.dsh/doc-review/session-notes/<sessionId>.json`，`doc_review_list` 之外的 `session_note_list` / `session_note_resolve` 负责给 agent 读与回标。
   - **保存即写进聊天输入框（攒批发送）**：保存后批注以 `【批注 · 请逐条回应】…【批注结束】` 的块追加进当前会话的输入框草稿，并保持焦点。可以连着划好几段逐条保存，块会**整体重算**（不会攒出两个块），你写在块下方的问题原样保留，攒够了一次回车发出。依据：GitHub pending review 的官方理由就是"别让 AI 在你没写完之前就按单条开工"。
   - 输入框是斜杠命令（`/…`）时不动它，只落盘；批注被处理/删除后再同步会把块自动摘掉。
   - 输入框走 `ctx.get('conversation').input.for(sessions.scope(sessionId))`（`.state.getSnapshot().draft` / `.setDraft()`）。**用 `ctx.get` 取而不声明依赖**：服务拿不到就只落盘、不碰输入框，绝不让客户端条目挂掉（v0.5.0 那次 boot 崩溃的教训）。抽出的纯逻辑有 16 条断言（`test/composer-block.mjs`）。
   - 为什么是「先出按钮再点开」而不是像文档那样直接弹框：对话里选文字经常是为了复制，直接抢弹框会烦。文档视口内仍是直接弹。
   - 「批注」页左栏顶部有「本会话批注 (待处理数)」区，可逐条 已处理 / 退回 / 删除，或一键「交给 AI」把这一批发给当前会话。
   - 浮层挂在 `shell.overlay` 插槽（全局，独立于「批注」页签），所以选中文字时人在哪儿都行。
+  - **划词提示词**：工具条上「复制」之后直接列出前 3 个提示词（默认「翻译」「解读」），其余收进「⋯ → 更多提示词」。默认点击后将「提示词 + 选中文字」插入当前会话输入框；可在管理弹窗为单条提示词开启自动发送，但仅当输入框原本为空时提交，有草稿时只插入并提示确认。模板里用 `{{text}}` 指代选中文字，不写就附在末尾。
+  - 管理入口在工具条末位：提示词不超过 3 个时是一个「编辑提示词」图标，点一下直接打开弹窗；超过 3 个时才变成 ⋯ 菜单（放不下的提示词 + 底部「管理提示词…」）。弹窗里可增删改、上移下移、恢复默认；缺名称或内容的行保存时忽略。提示词存本机 localStorage（键 `dsh-doc-review.prompts`），最多 30 条。
+  - 工具条、菜单、弹窗、提示条按 DSH 官方 Menu / Modal / Button / Toast 规格写，颜色只用宿主 `--dsw-*` 变量，深色主题自动跟随。
 
 工具条三个动作：
 
@@ -86,7 +98,8 @@ DSH 会话页顶部页签栏里的 **「批注」**（与「对话轨迹」「�
 | `selected_text` | 划词原文（**权威锚点，任何情况下都不改写**） |
 | `selected_text_hash` | `sha256:...` |
 | `anchored_text` | 重锚后实际命中的文本；空串 = 已失锚 |
-| `x_status` / `x_reply` / `x_resolved_at` | 本插件私有状态（MRSF 的 `x_` 扩展位） |
+| `reply_to` | 回复串：每条回复是独立条目，`reply_to` 指向父批注 id |
+| `x_status` / `x_reply` / `x_resolved_at` / `x_updated_at` / `x_created_at` / `x_role` | 本插件私有状态（MRSF 的 `x_` 扩展位）；`x_role` 区分回复来自用户还是 AI，`x_reply` 只留最后一条 AI 回复做兼容 |
 
 为什么不自创格式：MRSF 已有 `@mrsf/mcp`、`@mrsf/cli`、VS Code 扩展等消费方，字段语义也写死了重锚规则（§7.4 / §8）。
 
@@ -96,13 +109,61 @@ DSH 会话页顶部页签栏里的 **「批注」**（与「对话轨迹」「�
 
 文档被改过之后，打开文档那一刻按 MRSF §7.4 的重锚四步重新定位：**精确匹配 → 多命中按旧行号就近消歧 → 空白归一化再匹配 → 都失败标「已失锚」但保留**。孤儿批注绝不静默删除，也不做假锚定（行号保持原值，卡片上挂红色「已失锚」）。
 
-## Agent 侧三个工具
+## Agent 侧工具
 
 | 工具 | 用途 |
 |---|---|
 | `doc_review_list` | 读批注。给 `doc` 读单篇；不给则巡检配置根目录下所有带批注的文档。返回行号区间 + 原文 + 意见 |
-| `doc_review_resolve` | 改完标记已处理，可回填一句「改了什么」（写进 `x_reply`，用户和同事都能看到） |
+| `doc_review_resolve` | 改完标记已处理，可回填一句「改了什么」（追加进该批注的回复串，用户和同事都能看到） |
 | `doc_review_reopen` | 改得不满意，退回待处理 |
+| `doc_review_reply` | 在某条批注的回复串里追加一条 AI 回复（解释做法、追问），不改状态 |
+| `doc_change_propose` | 建议模式：登记改动提案（`quote` → `after` + `note`），不动文件 |
+| `doc_change_list` | 查看待审提案；不给 `doc` 则巡检所有带提案的文档 |
+| `doc_change_decide` | 接受（此时才落盘，按原文重新定位）/ 拒绝（带原因）/ 退回待审 |
+| `session_note_list` | 读会话批注（对话消息上的划词意见） |
+| `session_note_resolve` | 会话批注 已处理 / 退回 / 删除 |
+
+### `/doc-review` 技能相关工具（规则沉淀 + 预审）
+
+装插件时自动在 `~/.dsh/skills/doc-review/SKILL.md` 落一份技能文件，skill-filesystem 自动发现，用户可用 `/doc-review` 调用。初始规则库 `~/.dsh/doc-review/rules.json` 为空；所有规则都来自用户历次批注的提炼，插件不自带任何通用规则。
+
+| 工具 | 用途 |
+|---|---|
+| `doc_review_history` | 跨项目聚合所有历史批注，给技能做共性提炼 |
+| `doc_review_mine_candidates` | 从历史里挖反复出现 ≥3 次 / ≥2 篇文档的意见模式作为**候选规则**（manual 粒度，用户入库前可换成启发式）|
+| `doc_review_rules_list` | 列规则库（含 candidate/active/deprecated）+ 自动健康检查（拒绝率、修改占比、90 天未命中）|
+| `doc_review_rules_add` | 加规则。detect.kind：regex / line_length / para_lines / heading_level / manual |
+| `doc_review_rules_update` | 改规则（status 变更 / 字段修改）|
+| `doc_review_rules_remove` | 删规则（想保留历史痕迹改用 update 置 deprecated）|
+| `doc_review_preview_apply` | 读 active 启发式规则，扫一篇文档，把命中结果挂进 `doc_change_propose` 待审改动（用户在批注页逐条 ✓/✗，这些 ✓/✗ 决定规则的 accept/reject 统计）|
+
+**自我进化闭环**：批注（手打反馈） → `mine_candidates`（提炼候选） → `rules_add`（固化成规则） → 打开新文档时 `preview_apply` 做预审 → 用户 ✓/✗（强化/弱化规则） → `rules_list` 健康检查自动降级坏规则 / 建议细化。
+
+**"交给 AI 改稿"的 prompt 现在额外带一句**：处理完批注后请调 `doc_review_mine_candidates`，发现 ≥3 条同质就提醒用户固化为规则。没发现就不打扰。
+
+规则库格式（人直接可读可改）：
+
+```json
+{
+  "version": 1,
+  "updatedAt": "...",
+  "_comment": "预审规则库。rules[] 为空表示还没沉淀过规则——按正常批注累积反馈，再用 /doc-review 技能或 doc_review_mine_candidates 工具提炼。",
+  "rules": [
+    {
+      "id": "r_xxx",
+      "trigger": "行长超过 80 字符",
+      "suggest": "拆短",
+      "detect": { "kind": "line_length", "max": 80 },
+      "note_tpl": "",
+      "status": "active",
+      "stats": { "hits": 12, "accept": 9, "reject": 2, "edit": 1 },
+      "sources": ["c_abc", "c_def"],
+      "createdAt": "...",
+      "lastReview": ""
+    }
+  ]
+}
+```
 
 ## 宿主路由（回环限定）
 
@@ -113,9 +174,13 @@ GET  /api/dsh-doc-review/doc?path=      读正文 + 批注 + 指纹
 POST /api/dsh-doc-review/save           { path, comments } 整体覆盖写回
 POST /api/dsh-doc-review/hello          浏览器半边加载心跳
 GET  /api/dsh-doc-review/ping           存活探针
+GET  /api/dsh-doc-review/props?path=    读该文档的改动提案
+POST /api/dsh-doc-review/prop           { path, action: accept|reject|reset, ids, reason } 处理提案
+GET  /api/dsh-doc-review/snotes?sessionId=  读会话批注
+POST /api/dsh-doc-review/snote          { sessionId, action: save|delete|sent|resolve|reopen, … } 写会话批注
 ```
 
-全部 `isLoopback` 校验；读文档限定在配置根目录内，写批注也只允许落在根目录内。
+全部 `isLoopback` 校验；读文档、写批注都限定在配置根目录内，或本会话碰过的文档。
 
 ## 配置
 
@@ -159,6 +224,10 @@ dsh plugin --profile desktop remove "@caihua/dsh-doc-review"
 ```powershell
 node test\host-smoke.mjs                                   # 96 条断言：真路由 / 真工具 / 真落盘 / 相关分层 / 多转写 / 弹框落点 / 会话批注 / 全量覆盖
 node test\hot-swap.mjs                                     # 3 条断言：入口热替换机制自证
+node test\client-helpers.mjs                               # 40 条断言：飞书式批注的纯逻辑（原文定位 / 偏移映射 / 卡片对齐 / 回复串兜底 / 快捷键文案）
+node test\composer-block.mjs                               # 28 条断言：会话批注写进聊天输入框的攒批逻辑
+node test\thread.mjs                                       # 43 条断言：回复串 MRSF 往返 / 旧 x_reply 迁移 / doc_review_reply / 编辑语义
+node test\selection-prompts.mjs                            # 38 条断言：划词提示词（模板填充 / 草稿持久化 / 自动发送 / 工具条宽度）
 node test\verify-real-session.mjs <sessionId>              # 拿真会话转写验抽取质量（只读）
 node test\verify-related.mjs <sessionId>                   # 拿真会话+真项目数据看「相关」两层实际会列出什么（只读）
 node test\scan-coverage.mjs                                # 插件扫描 vs 独立遍历的数量/深度对比（只读）

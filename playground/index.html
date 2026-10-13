@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>批注页左栏顶部 · 新旧方案对比</title>
+<style>
+:root{
+  /* 浅色档近似宿主 --dsw-alias-*，深色同理；页面里做双主题切换 */
+  --line:#e5e5e5; --line-strong:#d6d6d6;
+  --fg:#262626; --fg2:#595959; --fg3:#8c8c8c;
+  --fill:#f5f5f5; --fill-active:#eaeaea;
+  --bg:#ffffff; --bg2:#fafafa;
+  --accent:#1677ff; --accent-bg:#e8f1ff;
+  --radius-sm:8px; --radius-md:12px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+[data-theme="dark"]{
+  --line:#333; --line-strong:#444;
+  --fg:#e8e8e8; --fg2:#aaa; --fg3:#777;
+  --fill:#222; --fill-active:#2c2c2c;
+  --bg:#1a1a1a; --bg2:#202020;
+  --accent:#4d96ff; --accent-bg:#1a2d47;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);background:var(--bg2);color:var(--fg);font-size:14px}
+.page{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+h1{font-size:18px;font-weight:600;margin:0 0 6px}
+.sub{font-size:12px;color:var(--fg3);margin:0 0 20px;line-height:18px}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:20px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){.compare{grid-template-columns:1fr}}
+.col-card{background:var(--bg);border:.5px solid var(--line);border-radius:16px;padding:4px 0 0;box-shadow:0 2px 8px #0000000a}
+.col-card header{display:flex;align-items:baseline;gap:8px;padding:10px 14px 6px}
+.col-card header b{font-size:13px}
+.col-card header span{font-size:11px;color:var(--fg3)}
+.badge-old{color:#c0392b;background:#fdecea;padding:1px 6px;border-radius:4px;font-size:11px}
+.badge-new{color:#1e7e34;background:#e8f5e9;padding:1px 6px;border-radius:4px;font-size:11px}
+[data-theme="dark"] .badge-old{background:#3d1f1c}
+[data-theme="dark"] .badge-new{background:#1c2f22}
+
+/* ── 左栏本体（两种方案共用外壳）── */
+.dr-col{display:flex;flex-direction:column;width:100%;max-width:320px;height:520px;margin:0 10px 10px;
+  background:var(--bg);border-right:.5px solid var(--line);overflow:hidden}
+@media(max-width:500px){.dr-col{max-width:none}}
+.dr-list{flex:1 1 auto;overflow:auto;padding:4px 0}
+.dr-item{display:flex;align-items:center;gap:6px;padding:5px 10px 5px calc(10px + var(--dr-indent,0px));
+  border-radius:var(--radius-md);font-size:13px;line-height:20px;cursor:default;min-width:0}
+.dr-item:hover{background:var(--fill)}
+.dr-item.on{background:var(--accent-bg)}
+.dr-item .name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dr-item .when{font-size:12px;color:var(--fg3)}
+.dr-drole{display:flex;align-items:center;gap:6px;padding:5px 10px 5px calc(10px + var(--dr-indent,0px));
+  border-radius:var(--radius-md);font-size:13px;line-height:20px;color:var(--fg2)}
+.dr-drole .cnt{font-size:12px;color:var(--fg3)}
+svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.pill{font-size:11px;line-height:16px;padding:0 4px;border-radius:8px;background:var(--accent-bg);color:var(--accent)}
+
+/* ── 通用控件 ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:28px;padding:0 10px;
+  border:.5px solid transparent;border-radius:var(--radius-sm);background:transparent;color:var(--fg);
+  font-size:12px;line-height:18px;font-family:var(--font);cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--fill)}
+.btn.on{background:var(--accent-bg);color:var(--accent)}
+.iconbtn{width:28px;padding:0}
+
+/* ── 方案 A：旧（现状还原）── */
+.old .panelhead{display:flex;align-items:center;gap:4px;height:28px;padding:0 2px;color:var(--fg3);font-size:12px;line-height:18px}
+.old .panelhead .t{flex:1}
+.old .searchrow{display:flex;padding:0}
+.old .searchrow .input{flex:1;height:32px;border:.5px solid var(--line-strong);border-radius:var(--radius-md);
+  background:var(--bg2);display:flex;align-items:center;padding:0 8px;gap:6px;font-size:14px;color:var(--fg3);margin:0}
+.old .resultbar{display:flex;align-items:center;gap:4px;padding:0 2px;min-height:28px}
+.old .resultbar .count{flex:1 1 auto;min-width:0;font-size:12px;color:var(--fg3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.old .barsep{width:1px;height:14px;margin:0 2px;background:var(--line)}
+
+/* ── 方案 B：新 ── */
+.new .panelhead{display:flex;align-items:center;gap:4px;height:28px;padding:0 2px;color:var(--fg3);font-size:12px;line-height:18px}
+.new .panelhead .t{flex:1}
+/* 搜索 + 刷新合一：刷新是搜索框的 suffix */
+.new .searchwrap{display:flex;align-items:center;height:32px;border:.5px solid var(--line-strong);
+  border-radius:var(--radius-md);background:var(--bg2);margin:0;padding:0 4px 0 8px;gap:6px}
+.new .searchwrap:focus-within{border-color:var(--accent)}
+.new .searchwrap input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);
+  font-size:14px;line-height:22px;font-family:var(--font)}
+.new .searchwrap input::placeholder{color:var(--fg3)}
+/* 分段控件：范围 */
+.segmented{display:inline-flex;padding:2px;gap:2px;background:var(--fill);border-radius:var(--radius-sm);height:28px}
+.segmented .seg{height:24px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--fg2);
+  font-size:12px;line-height:18px;font-family:var(--font);cursor:pointer}
+.segmented .seg:hover{color:var(--fg)}
+.segmented .seg.on{background:var(--bg);color:var(--fg);box-shadow:0 1px 2px #0000001f}
+/* 筛选行：只管「筛什么、怎么排」 */
+.new .filterbar{display:flex;align-items:center;gap:8px;padding:2px;min-height:32px}
+.new .sortbtn{margin-left:auto}
+/* 计数降级为弱色一行，扫描耗时只留 title */
+.new .countline{padding:0 4px 2px;font-size:12px;line-height:18px;color:var(--fg3)}
+.divider{flex:none;height:.5px;background:var(--line);margin:2px 0}
+.notes{font-size:12px;color:var(--fg2);line-height:20px;padding:2px 14px 14px;max-width:320px}
+.notes li{margin-bottom:4px}
+.manual{padding:4px 6px 8px}
+.manual .input{height:32px;border:.5px solid var(--line-strong);border-radius:var(--radius-md);
+  background:var(--bg2);display:flex;align-items:center;padding:0 8px;font-size:12px;color:var(--fg3)}
+footer{margin-top:24px;font-size:12px;color:var(--fg3);line-height:18px}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>批注页 · 左栏顶部重排（静态稿）</h1>
+  <p class="sub">左＝现状，右＝提案。尺寸全部走宿主 token：搜索框 32px/14px、小按钮 28px/12px、行 13px/20px、缩进 18px/级。</p>
+  <div class="toolbar">
+    <button class="btn" id="themeBtn">切换深浅色</button>
+  </div>
+
+  <div class="compare">
+
+    <!-- ═══ 方案 A：现状 ═══ -->
+    <div class="col-card old">
+      <header><b>现状</b><span class="badge-old">4 条横带 · 状态与操作混行</span></header>
+      <div class="dr-col">
+        <div class="panelhead">
+          <span class="t">文档</span>
+          <button class="btn iconbtn on" title="目录树视图"><svg viewBox="0 0 24 24"><path d="M4 5h6M4 12h6M4 19h6M14 12h6M14 19h6"/></svg></button>
+          <button class="btn iconbtn" title="平铺视图"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        </div>
+        <div class="searchrow">
+          <div class="input"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/></svg>搜索文档名…</div>
+        </div>
+        <div class="resultbar">
+          <span class="count">37 篇（本会话 3 · 本项目 34）· 扫描 3.2s</span>
+          <button class="btn on">相关</button>
+          <button class="btn">工作区</button>
+          <button class="btn">全库</button>
+          <span class="barsep"></span>
+          <button class="btn" title="当前：按最近产出排序">按最近</button>
+          <button class="btn iconbtn" title="重扫并刷新"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg></button>
+        </div>
+        <div class="dr-list">
+          <div class="dr-drole"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>research<span class="cnt">6</span></div>
+          <div class="dr-item on" style="--dr-indent:18px"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg><span class="name">YiWu-1010-需求清单.md</span><span class="when">今天 16:20</span></div>
+          <div class="dr-item" style="--dr-indent:18px"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg><span class="name">QW-Pages发布对冲记录.md</span><span class="when">昨天</span></div>
+          <div class="dr-drole"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>demo<span class="cnt">12</span></div>
+          <div class="dr-item" style="--dr-indent:18px"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg><span class="name">README.md</span><span class="when">10-08</span></div>
+        </div>
+        <div class="manual"><div class="input">粘贴文档绝对路径后回车</div></div>
+      </div>
+      <ul class="notes">
+        <li>结果行 = 状态文本 + 5 个控件，主次不清</li>
+        <li>「列表怎么显示」拆在两行：视图在标题条、范围排序在结果行</li>
+        <li>「按最近」读起来像标签，不像开关</li>
+        <li>扫描耗时等诊断信息常驻</li>
+      </ul>
+    </div>
+
+    <!-- ═══ 方案 B：提案 ═══ -->
+    <div class="col-card new">
+      <header><b>提案</b><span class="badge-new">3 条横带 · 一行一职</span></header>
+      <div class="dr-col">
+        <!-- 1. 标题条：面板名 + 视图切换（不变） -->
+        <div class="panelhead">
+          <span class="t">文档</span>
+          <button class="btn iconbtn on" title="目录树视图"><svg viewBox="0 0 24 24"><path d="M4 5h6M4 12h6M4 19h6M14 12h6M14 19h6"/></svg></button>
+          <button class="btn iconbtn" title="平铺视图"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        </div>
+        <!-- 2. 搜索行：搜索框 + 刷新并入 suffix（刷新＝重新执行这次搜索） -->
+        <div class="searchwrap">
+          <svg viewBox="0 0 24 24" style="color:var(--fg3)"><circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/></svg>
+          <input placeholder="搜索文档名…">
+          <button class="btn iconbtn" title="重扫并刷新列表"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg></button>
+        </div>
+        <!-- 3. 筛选行：范围做分段控件；排序是明确的箭头开关 -->
+        <div class="filterbar">
+          <div class="segmented" role="tablist" aria-label="范围">
+            <button class="seg on">相关</button>
+            <button class="seg">工作区</button>
+            <button class="seg">全库</button>
+          </div>
+          <button class="btn iconbtn sortbtn" title="当前：按最近产出。点一下改成「待处理优先」">
+            <svg viewBox="0 0 24 24"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+          </button>
+        </div>
+        <!-- 计数降级为一行弱色 hint，扫描耗时只留 title -->
+        <div class="countline" title="本会话 3 · 本项目 34 · 扫描 3.2s">37 篇 · 相关范围</div>
+        <div class="divider"></div>
+        <div class="dr-list">
+          <div class="dr-drole"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>research<span class="cnt">6</span></div>
+          <div class="dr-item on" style="--dr-indent:18px"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg><span class="name">YiWu-1010-需求清单.md</span><span class="when">今天 16:20</span></div>
+          <div class="dr-item" style="--dr-indent:18px"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg><span class="name">QW-Pages发布对冲记录.md</span><span class="when">昨天</span></div>
+          <div class="dr-drole"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>demo<span class="cnt">12</span></div>
+          <div class="dr-item" style="--dr-indent:18px"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg><span class="name">README.md</span><span class="when">10-08</span></div>
+        </div>
+        <div class="manual"><div class="input">粘贴文档绝对路径后回车</div></div>
+      </div>
+      <ul class="notes">
+        <li>标题条 → 搜索（含刷新）→ 筛选 → 计数 hint → 列表，一行一职</li>
+        <li>范围从 3 个散按钮变分段控件，一眼是互斥选项组</li>
+        <li>排序变成带上下箭头的图标开关，语义自明</li>
+        <li>计数降级为 12px 弱色；扫描耗时进 tooltip</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>静态稿仅示意左栏顶部；列表内容、右栏批注流不变。若认可此方向，改动落在 lib/client.js:1660-1724（结构）与 2240-2254（CSS）。</footer>
+</div>
+<script>
+document.getElementById('themeBtn').onclick=function(){
+  var b=document.body, d=b.getAttribute('data-theme')==='dark'
+  b.setAttribute('data-theme', d?'':'dark'); this.textContent=d?'切换深色':'切换浅色'
+}
+</script>
+</body>
+</html>

@@ -22,9 +22,11 @@ function grab(name) {
 
 const defStart = src.indexOf('var DEFAULT_PROMPTS = [')
 const defEnd = src.indexOf('\n    ]\n', defStart) + 6
-const names = ['normalizePrompts', 'fillPrompt', 'joinDraft', 'loadPrompts', 'storePrompts', 'pillWidth']
+const names = ['normalizePrompts', 'fillPrompt', 'joinDraft', 'loadPrompts', 'storePrompts', 'pillWidth', 'encodeSelectionReference', 'decodeSelectionReference', 'serializeSelectionReference', 'selectionReference']
 const make = new Function('localStorage',
-  "var PROMPTS_KEY = 'dsh-doc-review.prompts'\n" + src.slice(defStart, defEnd) + '\n' + names.map(grab).join('\n') +
+  "var PROMPTS_KEY = 'dsh-doc-review.prompts'\n" +
+  "var SELECTION_REF_SOURCE = 'dsh-doc-review-selection'\n" +
+  src.slice(defStart, defEnd) + '\n' + names.map(grab).join('\n') +
   '\nreturn {DEFAULT_PROMPTS,' + names.join(',') + '}')
 
 const mem = new Map()
@@ -35,14 +37,15 @@ console.log('[1] defaults')
 const d = H.normalizePrompts(null)
 ok('default has 翻译 + 解读', d.map((p) => p.label).join(',') === '翻译,解读', JSON.stringify(d.map((p) => p.label)))
 ok('defaults carry {{text}}', d.every((p) => p.template.includes('{{text}}')))
+ok('defaults keep direct-send disabled', d.every((p) => p.send === false))
 ok('defaults are copies (mutating does not leak)', (d[0].label = 'x', H.normalizePrompts(null)[0].label === '翻译'))
 ok('non-array (corrupt) → defaults', H.normalizePrompts({ a: 1 }).length === 2)
 ok('empty array is kept (user deleted all)', H.normalizePrompts([]).length === 0)
 
 console.log('[2] normalize')
 const n = H.normalizePrompts([
-  { id: 'a', label: '  总结 ', template: '总结：{{text}}' },
-  { id: 'a', label: '改写', template: '改写 {{text}}' },
+  { id: 'a', label: '  总结 ', template: '总结：{{text}}', send: true },
+  { id: 'a', label: '改写', template: '改写 {{text}}', send: 'yes' },
   { id: 'b', label: '', template: 'x' },
   { id: 'c', label: '空', template: '   ' },
   null, 'str',
@@ -51,6 +54,8 @@ const n = H.normalizePrompts([
 ok('blank label / blank template / junk dropped', n.length === 3, JSON.stringify(n))
 ok('label trimmed', n[0].label === '总结')
 ok('duplicate id made unique', n[0].id !== n[1].id, n.map((p) => p.id).join(','))
+ok('explicit send flag retained', n[0].send === true)
+ok('non-boolean send flag defaults off', n[1].send === false)
 ok('missing id generated', !!n[2].id)
 ok('label capped at 16 chars', n[2].label.length === 16)
 ok('list capped at 30', H.normalizePrompts(Array.from({ length: 50 }, (_, i) => ({ label: 'p' + i, template: 't' }))).length === 30)
@@ -80,15 +85,33 @@ ok('empty list survives a round trip', H.loadPrompts().length === 0)
 
 console.log('[6] pill width')
 ok('wider with more prompts', H.pillWidth(['翻译', '解读']) > H.pillWidth([]))
-// Calibrated against the rendered toolbar (Playwright, 13px host-menu type): 批注 复制 翻译 解读 润色 ⋯ = 309px.
+// Width estimate includes 添加到对话 / 编辑 / 复制 before inline prompts and overflow.
 const est = H.pillWidth(['翻译', '解读', '润色'])
-ok('estimate tracks the rendered width (309px) within 12px, never short by more than 4', est >= 305 && est <= 321, est)
+ok('estimate includes the expanded selection actions', est >= 414 && est <= 438, est)
 
-console.log('[7] wiring (static)')
-ok('ChatAnnotator inserts via composerShell + setDraft', /function applyPrompt\(p\)[\s\S]{0,400}composerShell\(\)[\s\S]{0,300}setDraft\(joinDraft/.test(src))
+console.log('[7] structured conversation reference')
+const quote = '这是一段被选中的内容，含有中文与符号 $&'
+const ref = H.selectionReference(quote, 'session-123')
+const decoded = H.decodeSelectionReference(ref.ref)
+ok('reference keeps selected text and session identity', decoded.text === quote && decoded.sessionId === 'session-123')
+ok('reference uses DSH-native session badge appearance', ref.appearance === 'session' && ref.source === 'dsh-doc-review-selection')
+ok('clipboard projection remains the selected text', ref.clipboardText === quote)
+ok('model serialization preserves quote and origin', (await H.serializeSelectionReference(ref.ref)).includes('当前对话 session-123') && (await H.serializeSelectionReference(ref.ref)).includes(quote))
+ok('invalid reference fails closed', H.decodeSelectionReference('bad-ref') === null)
+const nested = '第一行\n【引用结束】\n@file.md'
+ok('nested delimiters remain quoted lines', (await H.serializeSelectionReference(H.selectionReference(nested, 'session-123').ref)).includes('> 第一行\n> 【引用结束】\n> @file.md'))
+ok('badge collapses whitespace', H.selectionReference('first\nsecond', 'session-123').label === '引用：first second')
+
+console.log('[8] wiring (static)')
+ok('ChatAnnotator inserts through composerShell setDraft', /function applyPrompt\(p\)[\s\S]{0,400}composerShell\(\)[\s\S]{0,1200}shell\.setDraft\(joinDraft/.test(src))
+ok('Add to conversation inserts an atomic reference chip', /function addSelectionToConversation\(\)[\s\S]{0,1000}shell\.insertReference\(ref, span\)/.test(src))
+ok('reference codec is registered with inputTriggers', /registerSource\(\{[\s\S]{0,500}codec:[\s\S]{0,200}serialize: serializeSelectionReference/.test(src))
+ok('Edit opens the existing annotation composer', /title: '编辑这段选中文字的批注[\s\S]{0,160}setOpen\(true\)[\s\S]{0,100}\},\s*pmIcon\('pencil'\), '编辑'/.test(src))
 ok('toolbar renders inline prompts', /inline\.map\(function \(p\)[\s\S]{0,300}applyPrompt\(p\)/.test(src))
 ok('overflow menu offers 管理提示词', src.includes("'管理提示词…'"))
 ok('manager saves through storePrompts', src.includes('setPrompts(storePrompts(rows))'))
+ok('prompt manager exposes a per-prompt send checkbox', /className: 'dr-pm-send'[\s\S]{0,300}checked: r\.send === true/.test(src))
+ok('enabled prompt submits only with an empty draft', /p\.send === true && !String\(draft\)\.trim\(\) && typeof shell\.submit === 'function'[\s\S]{0,100}shell\.submit\(\)/.test(src))
 ok('no overflow → last button opens the manager directly (no one-item menu)', /overflow\.length\s*\?[\s\S]{0,400}setMoreOpen[\s\S]{0,200}:\s*h\('button'[\s\S]{0,400}openManager\(\)/.test(src))
 ok('menu only renders when something overflows', /if \(moreOpen && !open && overflow\.length\)/.test(src))
 

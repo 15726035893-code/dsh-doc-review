@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>批注页左栏 · Linear 风格提案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;590&display=swap" rel="stylesheet">
+<style>
+/* ═══ Linear Design System — dark-mode-native ═══ */
+:root{
+  --bg-marketing:#08090a;
+  --bg-panel:#0f1011;
+  --bg-surface:#191a1b;
+  --bg-hover:#28282c;
+  --text-primary:#f7f8f8;
+  --text-secondary:#d0d6e0;
+  --text-tertiary:#8a8f98;
+  --text-quaternary:#62666d;
+  --brand:#5e6ad2;
+  --accent:#7170ff;
+  --accent-hover:#828fff;
+  --border-subtle:rgba(255,255,255,0.05);
+  --border-standard:rgba(255,255,255,0.08);
+  --btn-bg:rgba(255,255,255,0.02);
+  --btn-bg-subtle:rgba(255,255,255,0.04);
+  --btn-bg-toolbar:rgba(255,255,255,0.05);
+  --radius-micro:2px;
+  --radius-sm:4px;
+  --radius-btn:6px;
+  --radius-card:8px;
+  --radius-panel:12px;
+  --shadow-elevated:rgba(0,0,0,0.4) 0px 2px 4px;
+  --shadow-dialog:rgba(0,0,0,0) 0px 8px 2px, rgba(0,0,0,0.01) 0px 5px 2px, rgba(0,0,0,0.04) 0px 3px 2px, rgba(0,0,0,0.07) 0px 1px 1px, rgba(0,0,0,0.08) 0px 0px 1px;
+}
+[data-theme="light"]{
+  --bg-marketing:#f7f8f8;
+  --bg-panel:#ffffff;
+  --bg-surface:#f3f4f5;
+  --bg-hover:#e9eaec;
+  --text-primary:#16171a;
+  --text-secondary:#3e4048;
+  --text-tertiary:#6f737c;
+  --text-quaternary:#9a9ea6;
+  --border-subtle:rgba(0,0,0,0.06);
+  --border-standard:#d0d6e0;
+  --btn-bg:rgba(0,0,0,0.02);
+  --btn-bg-subtle:rgba(0,0,0,0.03);
+  --btn-bg-toolbar:rgba(0,0,0,0.05);
+  --shadow-elevated:rgba(0,0,0,0.08) 0px 2px 4px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg-marketing);color:var(--text-secondary);
+  font-family:'Inter','SF Pro Display',-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',system-ui,sans-serif;
+  font-feature-settings:"cv01","ss03";
+  -webkit-font-smoothing:antialiased;
+  display:flex;min-height:100vh;align-items:center;justify-content:center;
+  padding:48px 24px;
+}
+.stage{display:flex;flex-direction:column;gap:16px;width:100%;max-width:380px}
+/* 页眉：Micro 标签 + 说明 */
+.intro{padding:0 2px}
+.intro .overline{font-size:10px;font-weight:510;line-height:1.5;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-quaternary);margin-bottom:4px}
+.intro h1{margin:0;font-size:20px;font-weight:590;line-height:1.33;letter-spacing:-0.24px;color:var(--text-primary)}
+.intro p{margin:4px 0 0;font-size:13px;font-weight:400;line-height:1.5;letter-spacing:-0.13px;color:var(--text-tertiary)}
+.theme-toggle{align-self:flex-start;background:var(--btn-bg);color:var(--text-secondary);
+  border:1px solid var(--border-standard);border-radius:var(--radius-btn);
+  font:510 12px/1.4 'Inter','PingFang SC',sans-serif;font-feature-settings:"cv01","ss03";
+  padding:5px 12px;cursor:pointer;transition:background .1s}
+.theme-toggle:hover{background:var(--btn-bg-subtle)}
+
+/* ═══ 侧栏面板本体 ═══ */
+.panel{
+  width:100%;background:var(--bg-panel);
+  border:1px solid var(--border-subtle);border-radius:var(--radius-panel);
+  box-shadow:var(--shadow-elevated);
+  display:flex;flex-direction:column;height:560px;overflow:hidden;
+}
+/* ── 1. 标题条 ── */
+.panelhead{display:flex;align-items:center;gap:4px;height:36px;padding:0 8px 0 12px;flex:none}
+.panelhead .t{flex:1;font-size:12px;font-weight:590;line-height:1.4;color:var(--text-tertiary)}
+.toolbtn{
+  width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;
+  background:var(--btn-bg-toolbar);color:var(--text-tertiary);
+  border:1px solid var(--border-subtle);border-radius:var(--radius-sm);
+  box-shadow:rgba(0,0,0,0.03) 0px 1.2px 0px 0px;cursor:pointer;padding:0;
+  transition:background .1s,color .1s}
+.toolbtn:hover{background:var(--btn-bg-subtle);color:var(--text-secondary)}
+.toolbtn.on{color:var(--text-primary);background:var(--bg-hover)}
+/* ── 2. 搜索：Linear 按钮式输入框 + 刷新 suffix ── */
+.searchwrap{
+  display:flex;align-items:center;gap:6px;margin:0 8px;padding:0 4px 0 8px;height:30px;
+  background:var(--btn-bg);border:1px solid var(--border-standard);border-radius:var(--radius-btn);
+  transition:border-color .1s}
+.searchwrap:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px rgba(94,106,210,0.15)}
+.searchwrap svg.g{color:var(--text-quaternary)}
+.searchwrap input{
+  flex:1;min-width:0;border:0;outline:0;background:transparent;padding:1px 0;
+  font:400 13px/1.5 'Inter','PingFang SC',sans-serif;font-feature-settings:"cv01","ss03";
+  color:var(--text-primary)}
+.searchwrap input::placeholder{color:var(--text-quaternary)}
+.searchwrap .refr{width:22px;height:22px;border-radius:var(--radius-micro);border:1px solid transparent}
+.searchwrap .refr:hover{background:var(--btn-bg-toolbar)}
+/* ── 3. 筛选行：分段控件 + 排序开关 ── */
+.filterbar{display:flex;align-items:center;gap:8px;padding:6px 8px 2px;flex:none}
+.segmented{
+  display:inline-flex;align-items:center;padding:2px;gap:1px;
+  background:var(--btn-bg-subtle);border:1px solid var(--border-subtle);
+  border-radius:var(--radius-btn)}
+.segmented .seg{
+  height:22px;padding:0 9px;border:0;border-radius:var(--radius-sm);cursor:pointer;
+  background:transparent;color:var(--text-tertiary);
+  font:510 12px/1.4 'Inter','PingFang SC',sans-serif;font-feature-settings:"cv01","ss03";
+  transition:background .1s,color .1s}
+.segmented .seg:hover{color:var(--text-secondary)}
+.segmented .seg.on{
+  background:var(--bg-surface);color:var(--text-primary);
+  border:1px solid var(--border-subtle);
+  box-shadow:rgba(0,0,0,0.03) 0px 1.2px 0px 0px}
+[data-theme="light"] .segmented .seg.on{background:#fff}
+.sortbtn{
+  margin-left:auto;height:24px;display:inline-flex;align-items:center;gap:4px;padding:0 7px;
+  background:var(--btn-bg);color:var(--text-tertiary);
+  border:1px solid var(--border-standard);border-radius:var(--radius-btn);
+  font:510 11px/1.4 'Inter','PingFang SC',sans-serif;font-feature-settings:"cv01","ss03";
+  cursor:pointer;transition:background .1s}
+.sortbtn:hover{background:var(--btn-bg-subtle);color:var(--text-secondary)}
+.sortbtn.on{color:var(--accent);border-color:rgba(113,112,255,0.4)}
+/* ── 4. 计数 hint（诊断信息进 title）── */
+.countline{flex:none;padding:4px 14px 6px;font-size:11px;font-weight:510;line-height:1.4;color:var(--text-quaternary)}
+.divider{flex:none;height:1px;margin:0 12px;background:var(--border-subtle)}
+/* ── 5. 列表 ── */
+.list{flex:1;overflow:auto;padding:4px 8px;scrollbar-width:thin}
+.row{display:flex;align-items:center;gap:7px;min-height:28px;padding:3px 8px;
+  border-radius:var(--radius-sm);cursor:default;min-width:0;
+  font:400 13px/1.5 'Inter','PingFang SC',sans-serif;font-feature-settings:"cv01","ss03";
+  color:var(--text-secondary)}
+.row:hover{background:var(--btn-bg-subtle)}
+.row.dir{color:var(--text-tertiary)}
+.row.dir .cnt{margin-left:auto;font-size:11px;font-weight:510;color:var(--text-quaternary)}
+.row .ico{flex:none;color:var(--text-quaternary);display:flex}
+.row .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:510}
+.row .when{flex:none;font-size:11px;color:var(--text-quaternary);font-weight:400}
+.row .pend{flex:none;font:510 10px/1 'Inter',sans-serif;color:var(--accent);
+  background:rgba(113,112,255,0.12);padding:3px 5px;border-radius:var(--radius-micro)}
+.row.on{background:rgba(94,106,210,0.14)}
+.row.on .name{color:var(--text-primary)}
+[data-theme="light"] .row.on{background:rgba(94,106,210,0.10)}
+/* ── 6. 底部路径输入 ── */
+.manual{
+  flex:none;display:flex;align-items:center;gap:6px;margin:8px;padding:0 8px;height:28px;
+  background:var(--btn-bg);border:1px solid var(--border-subtle);border-radius:var(--radius-btn);
+  font:400 12px/1.5 'Inter','PingFang SC',sans-serif;color:var(--text-quaternary)}
+svg{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* 下方说明卡 */
+.legend{
+  width:100%;background:rgba(255,255,255,0.02);border:1px solid var(--border-subtle);
+  border-radius:var(--radius-card);padding:12px 14px}
+[data-theme="light"] .legend{background:rgba(0,0,0,0.015)}
+.legend .lt{font-size:11px;font-weight:590;line-height:1.4;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.legend ol{margin:0;padding-left:16px}
+.legend li{font-size:12px;line-height:1.7;color:var(--text-tertiary)}
+.legend li b{color:var(--text-secondary);font-weight:510}
+kbd{font:510 10px/1 'Inter',ui-monospace,sans-serif;color:var(--text-secondary);
+  background:var(--btn-bg-toolbar);border:1px solid var(--border-subtle);
+  border-radius:var(--radius-micro);padding:2px 4px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="intro">
+    <div class="overline">批注页 · 左栏顶部</div>
+    <h1>文档面板 · 提案</h1>
+    <p>一行一职：标题 → 搜索 → 筛选 → 列表。Inter 510 / 半透明白描边 / 靛紫只给激活态。</p>
+  </div>
+  <button class="theme-toggle" id="themeBtn">切换浅色</button>
+
+  <div class="panel">
+    <!-- 1 标题条 -->
+    <div class="panelhead">
+      <span class="t">文档</span>
+      <button class="toolbtn on" title="目录树视图" aria-pressed="true">
+        <svg viewBox="0 0 24 24"><path d="M4 5h7M4 12h7M4 19h7M15 9h5M15 15h5M15 9v6"/></svg></button>
+      <button class="toolbtn" title="平铺视图（本会话 / 本项目）" aria-pressed="false">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    </div>
+    <!-- 2 搜索 + 刷新 suffix -->
+    <div class="searchwrap">
+      <svg class="g" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/></svg>
+      <input placeholder="搜索文档名…" spellcheck="false">
+      <button class="toolbtn refr" title="重扫并刷新列表"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg></button>
+    </div>
+    <!-- 3 筛选：范围分段控件 + 排序 -->
+    <div class="filterbar">
+      <div class="segmented" role="tablist" aria-label="范围">
+        <button class="seg on">相关</button>
+        <button class="seg">工作区</button>
+        <button class="seg">全库</button>
+      </div>
+      <button class="sortbtn" title="当前：按最近产出。点按切换「待处理优先」">
+        <svg viewBox="0 0 24 24"><path d="M7 14.5 12 19.5 17 14.5M7 9.5 12 4.5 17 9.5"/></svg>最近
+      </button>
+    </div>
+    <!-- 4 计数（弱化） -->
+    <div class="countline" title="本会话 3 · 本项目 34 · 扫描 3.2s">37 篇 · 相关</div>
+    <div class="divider"></div>
+    <!-- 5 列表 -->
+    <div class="list">
+      <div class="row dir" style="padding-left:8px"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><span class="name">research</span><span class="cnt">6</span></div>
+      <div class="row on" style="padding-left:24px"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg></span><span class="name">YiWu-1010-需求清单.md</span><span class="pend">3</span></div>
+      <div class="row" style="padding-left:24px"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg></span><span class="name">QW-Pages发布对冲记录.md</span><span class="when">昨天</span></div>
+      <div class="row" style="padding-left:24px"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg></span><span class="name">YiWu-1010-完整逐字稿.md</span><span class="when">昨天</span></div>
+      <div class="row dir" style="padding-left:8px"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><span class="name">demo</span><span class="cnt">12</span></div>
+      <div class="row" style="padding-left:24px"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg></span><span class="name">README.md</span><span class="when">10-08</span></div>
+      <div class="row" style="padding-left:24px"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg></span><span class="name">vite.config.ts</span><span class="when">10-05</span></div>
+    </div>
+    <!-- 6 底部路径输入 -->
+    <div class="manual">
+      <svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6M12 19h8"/></svg>
+      粘贴文档绝对路径后回车
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="lt">说明</div>
+    <ol>
+      <li><b>搜索行</b>：刷新并入输入框 suffix——刷新即「重新执行这次搜索」。</li>
+      <li><b>范围</b>＝分段控件，互斥感直观；<b>排序</b>带双向箭头，显示当前态。</li>
+      <li><b>计数</b>降为 11px 四级灰；「本会话 3 · 本项目 34 · 扫描 3.2s」进 tooltip。</li>
+      <li>待处理数用 <b>2px 微标</b>挂在行尾——「现在要不要处理」的信号留在一行内。</li>
+    </ol>
+  </div>
+</div>
+<script>
+document.getElementById('themeBtn').onclick=function(){
+  var b=document.body,d=b.getAttribute('data-theme')==='light'
+  d?b.removeAttribute('data-theme'):b.setAttribute('data-theme','light')
+  this.textContent=d?'切换浅色':'切换深色'
+}
+</script>
+</body>
+</html>

@@ -102,8 +102,9 @@ async function main() {
 
   console.log('\n[1] 挂载')
   ok('注册了 10 条路由（会话批注 2 + 建议模式 2）', routes.length === 10, 'got ' + routes.length)
-  ok('注册了 9 个工具（文档批注 4 + 会话批注 2 + 建议模式 3）', tools.length === 9, tools.map((t) => t.name).join(','))
+  ok('注册了 16 个工具（文档批注 4 + 会话批注 2 + 建议模式 3 + /doc-review 技能 7）', tools.length === 16, tools.map((t) => t.name).join(','))
   ok('工具齐名', ['doc_review_list', 'doc_review_resolve', 'doc_review_reopen'].every((n) => !!tool(n)))
+  ok('/doc-review 技能工具齐名', ['doc_review_history', 'doc_review_mine_candidates', 'doc_review_rules_list', 'doc_review_rules_add', 'doc_review_rules_update', 'doc_review_rules_remove', 'doc_review_preview_apply'].every((n) => !!tool(n)))
 
   console.log('\n[2] /state')
   let res = makeRes()
@@ -359,9 +360,9 @@ async function main() {
   ok('下方落点上沿在选区下沿之下，不重叠', top.top != null && top.top > 60, 'top=' + top.top)
   // 靠右/靠左夹紧，不越出视口
   const right = fp.floatPlacement({ left: 1180, top: 400, bottom: 420 }, 1200, 800)
-  ok('靠右选区横向夹紧（不越界）', right.left + 280 <= 1200, 'left=' + right.left)
+  ok('靠右选区横向夹紧（不越界）', right.left + 430 <= 1200, 'left=' + right.left)
   const leftEdge = fp.floatPlacement({ left: 2, top: 400, bottom: 420 }, 1200, 800)
-  ok('靠左选区横向夹紧（不小于 8）', leftEdge.left === 8, 'left=' + leftEdge.left)
+  ok('靠左选区横向夹紧（不小于 16）', leftEdge.left === 16, 'left=' + leftEdge.left)
 
   console.log('\n[17] 会话批注（在对话消息上划词写意见）')
   const snSid = 'smoke_session_0001'
