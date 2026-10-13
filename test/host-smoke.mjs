@@ -187,8 +187,12 @@ async function main() {
 
   console.log('\n[11] 失锚重定位（直接从 client.js 抽真源码来跑，不另写参考实现）')
   const clientSrc = await fsp.readFile(new URL('../lib/client.js', import.meta.url), 'utf8')
-  const from = clientSrc.indexOf('function offsetToLine(')
+  const from = clientSrc.indexOf('function isMacPlatform(')
   const to = clientSrc.indexOf('/* ────────────────────────── 极简 Markdown')
+  // 从 isMacPlatform 起切，而不是从 offsetToLine：重锚这一串函数的依赖其实分布在
+  // 更早的位置（isMacPlatform → plainQuote → offsetToLine → findAll/nearestHit →
+  // findAnchorLines → reanchorAll）。以前从 offsetToLine 切会漏掉前面的定义，
+  // 于是这一节一直以 ReferenceError 崩掉 ——「重锚」其实从未被真正测过。
   ok('抽得到重锚源码', from > 0 && to > from, 'from=' + from + ' to=' + to)
   const anchor = new Function(clientSrc.slice(from, to) + '\nreturn {offsetToLine,findAll,nearestHit,findAnchorLines,reanchorAll}')()
   // 案例一：文档顶部插了 3 行，批注行号应当跟着位移（精确匹配）
