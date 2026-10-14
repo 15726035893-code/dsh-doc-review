@@ -102,8 +102,9 @@ async function main() {
 
   console.log('\n[1] 挂载')
   ok('注册了 10 条路由（会话批注 2 + 建议模式 2）', routes.length === 10, 'got ' + routes.length)
-  ok('注册了 8 个工具（会话批注 2 + 建议模式 3）', tools.length === 8, tools.map((t) => t.name).join(','))
+  ok('注册了 16 个工具（文档批注 4 + 会话批注 2 + 建议模式 3 + /doc-review 技能 7）', tools.length === 16, tools.map((t) => t.name).join(','))
   ok('工具齐名', ['doc_review_list', 'doc_review_resolve', 'doc_review_reopen'].every((n) => !!tool(n)))
+  ok('/doc-review 技能工具齐名', ['doc_review_history', 'doc_review_mine_candidates', 'doc_review_rules_list', 'doc_review_rules_add', 'doc_review_rules_update', 'doc_review_rules_remove', 'doc_review_preview_apply'].every((n) => !!tool(n)))
 
   console.log('\n[2] /state')
   let res = makeRes()
@@ -187,8 +188,12 @@ async function main() {
 
   console.log('\n[11] 失锚重定位（直接从 client.js 抽真源码来跑，不另写参考实现）')
   const clientSrc = await fsp.readFile(new URL('../lib/client.js', import.meta.url), 'utf8')
-  const from = clientSrc.indexOf('function offsetToLine(')
+  const from = clientSrc.indexOf('function isMacPlatform(')
   const to = clientSrc.indexOf('/* ────────────────────────── 极简 Markdown')
+  // 从 isMacPlatform 起切，而不是从 offsetToLine：重锚这一串函数的依赖其实分布在
+  // 更早的位置（isMacPlatform → plainQuote → offsetToLine → findAll/nearestHit →
+  // findAnchorLines → reanchorAll）。以前从 offsetToLine 切会漏掉前面的定义，
+  // 于是这一节一直以 ReferenceError 崩掉 ——「重锚」其实从未被真正测过。
   ok('抽得到重锚源码', from > 0 && to > from, 'from=' + from + ' to=' + to)
   const anchor = new Function(clientSrc.slice(from, to) + '\nreturn {offsetToLine,findAll,nearestHit,findAnchorLines,reanchorAll}')()
   // 案例一：文档顶部插了 3 行，批注行号应当跟着位移（精确匹配）
@@ -355,9 +360,9 @@ async function main() {
   ok('下方落点上沿在选区下沿之下，不重叠', top.top != null && top.top > 60, 'top=' + top.top)
   // 靠右/靠左夹紧，不越出视口
   const right = fp.floatPlacement({ left: 1180, top: 400, bottom: 420 }, 1200, 800)
-  ok('靠右选区横向夹紧（不越界）', right.left + 280 <= 1200, 'left=' + right.left)
+  ok('靠右选区横向夹紧（不越界）', right.left + 430 <= 1200, 'left=' + right.left)
   const leftEdge = fp.floatPlacement({ left: 2, top: 400, bottom: 420 }, 1200, 800)
-  ok('靠左选区横向夹紧（不小于 8）', leftEdge.left === 8, 'left=' + leftEdge.left)
+  ok('靠左选区横向夹紧（不小于 16）', leftEdge.left === 16, 'left=' + leftEdge.left)
 
   console.log('\n[17] 会话批注（在对话消息上划词写意见）')
   const snSid = 'smoke_session_0001'
