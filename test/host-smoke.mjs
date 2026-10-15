@@ -228,12 +228,18 @@ async function main() {
   const sid = 'smoke_sess_0001'
   const sessDir = path.join(TEST_SESSIONS, '--C-smoke--', sid)
   await fsp.mkdir(sessDir, { recursive: true })
+  // 噪音样本：真实存在、但在 node_modules 下，必须被排除（该正则在两种平台的斜杠下都要生效）
+  const noiseDir = path.join(TMP_ROOT, 'node_modules')
+  await fsp.mkdir(noiseDir, { recursive: true })
+  const noiseDoc = path.join(noiseDir, '依赖说明.md')
+  await fsp.writeFile(noiseDoc, '# 依赖说明\n\n噪音。\n', 'utf8')
   const zc = (await import('node:zlib')).zstdCompressSync
   const frames = [
     { type: 'session', version: 4, id: sid, cwd: TMP_ROOT },
     { type: 'tool/call', seq: 1, data: { name: 'write', arguments: JSON.stringify({ file_path: newDoc, content: 'x' }) } },
     { type: 'tool/call', seq: 2, data: { name: 'read', arguments: JSON.stringify({ file_path: oldDoc }) } },
     { type: 'tool/call', seq: 3, data: { name: 'edit', arguments: JSON.stringify({ file_path: outsideDoc, old_string: 'a', new_string: 'b' }) } },
+    { type: 'tool/call', seq: 4, data: { name: 'read', arguments: JSON.stringify({ file_path: noiseDoc }) } },
   ]
   await fsp.writeFile(path.join(sessDir, 'session.v4.jsonl.zstd'),
     Buffer.concat(frames.map((f) => zc(Buffer.from(JSON.stringify(f) + '\n', 'utf8')))))
@@ -246,6 +252,7 @@ async function main() {
   ok('会话范围也按最近产出排序', sJson.docs.map((d) => d.name).join('|') === 'C-最新方案.md|外域方案.md|B-旧方案.md', sJson.docs.map((d) => d.name).join('|'))
   ok('带回会话 cwd', sJson.cwd === TMP_ROOT, sJson.cwd)
   ok('带回读写动作', sJson.docs.some((d) => d.via === 'write') && sJson.docs.some((d) => d.via === 'read'), JSON.stringify(sJson.docs.map((d) => d.via)))
+  ok('node_modules 下的噪音被排除', sJson.docs.every((d) => !/[\\/]node_modules[\\/]/.test(d.path)), (sJson.docs || []).map((d) => d.path).join(' | '))
 
   // 会话碰过的文档在 roots 之外 → 放行；不报 sessionId → 仍拒
   res = makeRes()
