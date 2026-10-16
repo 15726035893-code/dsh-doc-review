@@ -22,7 +22,7 @@ function grab(name) {
 
 const defStart = src.indexOf('var DEFAULT_PROMPTS = [')
 const defEnd = src.indexOf('\n    ]\n', defStart) + 6
-const names = ['normalizePrompts', 'fillPrompt', 'joinDraft', 'loadPrompts', 'storePrompts', 'pillWidth', 'encodeSelectionReference', 'decodeSelectionReference', 'serializeSelectionReference', 'selectionReference']
+const names = ['normalizePrompts', 'fillPrompt', 'joinDraft', 'loadPrompts', 'storePrompts', 'pillWidth', 'chatPillPlacement', 'encodeSelectionReference', 'decodeSelectionReference', 'serializeSelectionReference', 'selectionReference']
 const make = new Function('localStorage',
   "var PROMPTS_KEY = 'dsh-doc-review.prompts'\n" +
   "var SELECTION_REF_SOURCE = 'dsh-doc-review-selection'\n" +
@@ -102,7 +102,31 @@ const nested = '第一行\n【引用结束】\n@file.md'
 ok('nested delimiters remain quoted lines', (await H.serializeSelectionReference(H.selectionReference(nested, 'session-123').ref)).includes('> 第一行\n> 【引用结束】\n> @file.md'))
 ok('badge collapses whitespace', H.selectionReference('first\nsecond', 'session-123').label === '引用：first second')
 
-console.log('[8] wiring (static)')
+console.log('[8] selection toolbar placement (below the selection, centred)')
+/* 工具条以前贴选区右上角，会压住刚读完的那一行；现在改成贴选区下沿、横向居中。 */
+const oneLine = { left: 400, right: 900, top: 300, bottom: 322 }
+const pp1 = H.chatPillPlacement(oneLine, 430, 1200, 800)
+ok('sits below the selection', pp1.above === false && pp1.top === 330, JSON.stringify(pp1))
+ok('centred on the selection', pp1.left === Math.round(650 - 215), JSON.stringify(pp1))
+const multiLine = { left: 300, right: 700, top: 500, bottom: 620 }
+ok('multi-line selection sits under its bottom edge',
+  H.chatPillPlacement(multiLine, 430, 1200, 800).top === 628)
+const nearBottom = { left: 300, right: 700, top: 740, bottom: 770 }
+const pp3 = H.chatPillPlacement(nearBottom, 430, 1200, 800)
+ok('flips above when there is no room below', pp3.above === true && pp3.top === 696, JSON.stringify(pp3))
+const nearRight = { left: 1000, right: 1190, top: 300, bottom: 322 }
+ok('clamped inside the right edge',
+  H.chatPillPlacement(nearRight, 430, 1200, 800).left === 762)
+const nearLeft = { left: 2, right: 60, top: 300, bottom: 322 }
+ok('clamped inside the left edge', H.chatPillPlacement(nearLeft, 430, 1200, 800).left === 8)
+const noRoom = { left: 100, right: 900, top: 10, bottom: 790 }
+ok('selection taller than the viewport still lands on screen',
+  H.chatPillPlacement(noRoom, 430, 1200, 800).top === 8)
+ok('toolbar consumes the shared placement helper',
+  /var place = chatPillPlacement\(sel\.rect, BAR_W, vw, vh\)/.test(src) &&
+  /className: 'dr-pill'[\s\S]{0,200}style: \{ left: pillLeft \+ 'px', top: pillTop \+ 'px' \}/.test(src))
+
+console.log('[9] wiring (static)')
 ok('ChatAnnotator inserts through composerShell setDraft', /function applyPrompt\(p\)[\s\S]{0,400}composerShell\(\)[\s\S]{0,1200}shell\.setDraft\(joinDraft/.test(src))
 ok('Add to conversation inserts an atomic reference chip', /function addSelectionToConversation\(\)[\s\S]{0,1000}shell\.insertReference\(ref, span\)/.test(src))
 ok('reference codec is registered with inputTriggers', /registerSource\(\{[\s\S]{0,500}codec:[\s\S]{0,200}serialize: serializeSelectionReference/.test(src))
