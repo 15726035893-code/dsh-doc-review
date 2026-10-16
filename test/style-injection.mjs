@@ -71,5 +71,41 @@ ok('列表行间留缝（避免相邻圆角贴合）',
   /\.dr-list>\*\+\*\{[^}]*margin-top:\s*([1-9]\d*)px/.test(css),
   '期望 .dr-list>*+*{margin-top:Npx} 且 N≥1')
 
+console.log('\n[5] 自愈：样式被移除 / 清空后再次调用要补回')
+/* 真出过的事故：重挂时新实例先认领旧实例留下的 <style>，随后旧实例的清理按 id 把它删掉，
+   插件照常渲染、整页样式却全没了（划词工具条丢掉 position:fixed，贴到了窗口左上角）。
+   这里让 ensureStyle 真跑在一个「head 会变」的假文档上，确认它能把样式补回来。 */
+const head = []
+// [3] 里那两个变量声明在 try 块内，这里重建一份（同一个 body）
+const decls2 = HL_NAMES.map((n, i) => `var ${n} = ${JSON.stringify(HL_VALUES[i])}`).join(';')
+const fnBody2 = body.replace(/^function ensureStyle\(\)\s*\{/, '').replace(/\}\s*$/, '')
+const fakeLive = {
+  getElementById: (id) => head.find((e) => e.id === id) || null,
+  createElement: () => ({
+    id: '', textContent: '',
+    remove() { const i = head.indexOf(this); if (i >= 0) head.splice(i, 1) },
+  }),
+  head: { appendChild: (el) => { head.push(el) } },
+}
+const runEnsure = () => new Function('document', 'STYLE_ID',
+  `${decls2}; function ensureStyle(){${fnBody2}} return ensureStyle()`)(fakeLive, 'dsh-doc-review-style')
+runEnsure()
+ok('首次调用挂上一份', head.length === 1 && String(head[0].textContent || '').length > 5000, `head=${head.length}`)
+head.length = 0
+runEnsure()
+ok('样式被外力移除后再调用会补回', head.length === 1 && String(head[0].textContent || '').length > 5000, `head=${head.length}`)
+head[0].textContent = ''
+runEnsure()
+ok('内容为空（如上次注入半途失败）会重写', String(head[0].textContent || '').length > 5000)
+const reused = runEnsure()
+ok('内容健在时复用同一份，不重复注入', reused === head[0] && head.length === 1, `head=${head.length}`)
+
+console.log('\n[6] apply 的样式生命周期')
+const applyFrom = src.indexOf('function apply(ctx)')
+const applyBody = src.slice(applyFrom, src.indexOf('var slots = ctx.slots', applyFrom))
+ok('head 变化时重新核一遍样式', /new MutationObserver\(/.test(applyBody) && /observe\(document\.head/.test(applyBody))
+ok('清理时先断开 observer', /mo\.disconnect\(\)/.test(applyBody))
+ok('清理只移除自己认领的那一份', /el === styleEl/.test(applyBody))
+
 console.log('\n结果：pass=' + pass + ' fail=' + fail)
 process.exitCode = fail ? 1 : 0
